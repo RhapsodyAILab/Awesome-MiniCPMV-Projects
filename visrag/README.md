@@ -1,16 +1,19 @@
 #  MiniCPM-V 系列模型在多模态文档 RAG 中的应用
 
-在相当长一段时间内，检索增强生成（RAG）需要使用 OCR 技术把文档中的文本抽取出来，接着使用文本嵌入模型获得语义向量，利用语义向量构建知识库进行检索。这种方法中间存在不可避免的信息损失。
+在相当长一段时间内，检索增强生成（RAG）需要使用 OCR 技术把文档中的文本抽取出来，接着使用文本嵌入模型获得语义向量，利用语义向量构建知识库进行检索。这种方法，会丢失所有的图像信息、大部分表格信息、图标信息，存在不可避免的信息损失。
 
-是否能够用一种近乎无损的方法来表征复杂文档，从而用来检索？
+是否能够用一种近乎无损的方法来表征复杂图文文档，从而用来信息无损地检索多模态文档？
 
-> 传统的方法包括 CLIP 模型和 SigLip 模型，这些模型在对比学习训练中或多或少获得了一些文档表征能力，但由于先天的结构设计问题，这些模型并不能很好地处理信息密度极高的文档，进而无法用作文档表示模型。
+> 传统的图文检索方法包括 CLIP 模型和 SigLip 模型，这些模型在对比学习训练中或多或少获得了一些文档表征能力，但由于先天的结构设计问题，这些模型并不能很好地处理信息密度极高、语义极为复杂的文档，进而无法用作文档表示模型。
 
-但以 `GPT-4V`, `QwenVL`, `MiniCPM-V-2.0` 为代表的支持 OCR 能力的视觉语言模型，能够理解复杂的图文交错的文档，无论是文本密集型还是图像密集型文档，模型均借助视觉编码器的**视觉能力**和语言模型基座的**强大的文本功底**，形成良好的复杂文档理解能力。
+但以 GPT-4V, QwenVL, MiniCPM-V-2.0 等为代表的支持 OCR 能力的视觉语言模型，能够理解复杂的图文交错的文档，无论是文本密集型还是图像密集型文档，模型均借助视觉编码器的**视觉能力**和语言模型基座的**强大的文本功底**，形成良好的复杂文档理解能力。
+
 
 那么，在这些支持 OCR 能力的模型上训练不需要 OCR 的向量检索模型，用来在**大量文档中**检索所需要的文档，就成为可能。
 
+
 现在我们以 OpenBMB 基于 `MiniCPM-V-2.0` 训练的端到端多模态检索模型 [MiniCPM-Visual-Embedding-v0](https://huggingface.co/RhapsodyAI/minicpm-visual-embedding-v0) 为例，实现多模态检索。
+
 
 > 若不熟悉代码或无GPU，本教程中的代码其实可以忽略，意会即可，笔者在huggingface上搭建了几个免费的demo可以给大家使用。
 
@@ -19,7 +22,7 @@
 
 ## 配置环境
 
-如果你是 Linux+英伟达GPU用户，在开始前，我们需要配置 `MiniCPM-V` 的运行环境。确保有 8GB 的显存。
+如果你是 Linux+英伟达GPU用户，在开始前，我们需要配置 MiniCPM-V 的运行环境。确保有 8GB 的显存。
 
 首先应该创建一个空的环境，这里用的是 python 自带的 `venv` 库。
 
@@ -48,7 +51,7 @@ torchvision==0.16.2
 timm
 ```
 
-然后需要安装 torch 和 torchvision，笔者喜欢从 pytorch 的官方镜像站 `https://download.pytorch.org/whl/torch/` 下载，或通过普通的 pip 安装。
+然后需要安装 torch 和 torchvision，笔者喜欢从 pytorch 的官方镜像站 https://download.pytorch.org/whl/torch/ 下载，或通过普通的 pip 安装。
 
 
 ## 下载视觉检索模型
@@ -72,7 +75,12 @@ export HF_ENDPOINT=https://hf-mirror.com
 
 ## 加载模型
 
-按照 [官方readme](https://huggingface.co/RhapsodyAI/minicpm-visual-embedding-v0) 里面的代码，这里需要把 `model_path` 改成刚刚下载的 `minicpm-visual-embedding-v0`的路径，比如 `model_path = './minicpm-visual-embedding-v0'`。
+按照 [官方readme](https://huggingface.co/RhapsodyAI/minicpm-visual-embedding-v0) 里面的代码，这里需要把 `model_path` 改成刚刚下载的 `minicpm-visual-embedding-v0`的路径：
+
+```python
+model_path = './minicpm-visual-embedding-v0'
+```
+
 
 ```python
 from transformers import AutoModel
@@ -91,7 +99,7 @@ model.to(device)
 
 ## 最简单的例子：提一个问题，找出最相关的图像文档
 
-这里有 3 张例子图片，分别是 `image1.png`，`image2.png`，`image3.png`，需要把路径分别替换进下面的代码。
+这里提供了 3 张例子图片，分别是 `image1.png`，`image2.png`，`image3.png`，需要把路径分别替换进下面的代码。
 
 这个代码实现的是模型的加载和一个最简单的检索。这里用户的问题是 `Who was elected as president of United States in 2020?`，同时提供了 3 张候选图片，其中有一张图片里的文档是能够回答这个问题的，其他的不能。
 
@@ -143,7 +151,7 @@ with torch.no_grad():
     q_reps = model(text=[query_full], image=[None], tokenizer=tokenizer).reps # [B, s, d]
 ```
 
-然后需要对问题和每一页文档计算向量相似度：
+然后需要对**问题**和**每一页文档**计算向量相似度：
 
 ```python
 scores = torch.matmul(q_reps, p_reps.T)
@@ -155,7 +163,7 @@ print(scores)
 可以看到输出的分数是：
 
 ```python
-# tensor([[-0.0112,  0.3316,  0.2376]], device='cuda:0')
+tensor([[-0.0112,  0.3316,  0.2376]], device='cuda:0')
 ```
 
 这些分数表示了每个图像文档和问题直接的相似性：
@@ -173,7 +181,9 @@ print(scores)
 
 ## 本地可部署的 Gradio Demo
 
-像上面这样用代码做检索非常麻烦，笔者从 [MiniCPM-Visual-Embedding-v0](https://huggingface.co/RhapsodyAI/minicpm-visual-embedding-v0) 的官方仓库里找到了一个可以本地部署的一个demo，这个demo可以对着一个很长的PDF问问题，检索最相关页面，可以很大程度节省阅读无关页面的时间。已经把代码放在 `pipeline_gradio.py` 中，唯一需要改的是 `model_path` 需要换成刚刚下载的 `minicpm-visual-embedding-v0` 的路径。然后需要通过 pip 安装 `gradio`。
+像上面这样用代码做检索非常麻烦，笔者在 [MiniCPM_Visual_Document_Retriever_Demo](https://huggingface.co/spaces/bokesyo/MiniCPM_Visual_Document_Retriever_Demo) 的仓库里上传了一个可以本地部署的一个demo，这个demo可以对着一个很长的PDF问问题，检索最相关页面，可以很大程度节省阅读无关页面的时间。
+
+唯一需要改的是 `model_path` 需要换成刚刚下载的 `minicpm-visual-embedding-v0` 的路径。然后需要通过 pip 安装 `gradio`。
 
 ```bash
 pip install gradio
@@ -182,7 +192,7 @@ pip install gradio
 然后运行
 
 ```bash
-python pipeline_gradio.py
+python app.py
 ```
 
 就会打开一个demo，可以对pdf提问题。
@@ -206,9 +216,9 @@ python pipeline_gradio.py
 
 ## 进阶：多模态 RAG 的解答生成部分
 
-至此，我们已经拿到了检索的最相关页面，但是也懒得去具体看这几页，这个情况在 `MiniCPM-V-2.6` 之前，就必须要调用 `GPT4V` 的 api 来实现生成，但现在有了 `MiniCPM-V-2.6` 的强大的多图综合理解能力（其实笔者恰好参与了 `MiniCPM-V-2.6` 多图理解的训练，所以，笔者觉得是时候实现一下 RAG 的生成部分了！）
+至此，我们已经拿到了检索的最相关页面，但是也懒得去具体看这几页，这个情况在 MiniCPM-V-2.6 发布之前，就必须要调用 GPT-4V= 的 api 来实现生成，但现在有了 MiniCPM-V-2.6 的强大的多图综合理解能力（其实笔者恰好参与了 MiniCPM-V-2.6 多图理解的训练，所以，笔者觉得是时候实现一下 RAG 的生成部分了！）
 
-`MiniCPM-V-2.6` 将会根据这些文档图片来生成一个问题的答案。
+MiniCPM-V-2.6 将会根据这些文档图片来生成一个问题的答案。
 
 ## 下载 MiniCPM-V-2.6
 
