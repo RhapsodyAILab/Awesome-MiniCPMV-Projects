@@ -1,1 +1,41 @@
+# 操作系统相关
 .DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.swp
+*.bak
+*.old
+
+# 编译文件和目录
+*.class
+*.o
+*.out
+*.exe
+*.dll
+*.pyc
+*.pyo
+*.pyd
+
+# 配置文件
+.env
+.idea/
+.vscode/
+*.iml
+
+# 打包文件
+*.jar
+*.war
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 临时或隐藏文件
+*~
+*.swo
+*.swn
