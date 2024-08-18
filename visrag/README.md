@@ -55,6 +55,24 @@ timm
 然后需要安装 torch 和 torchvision，笔者喜欢从 pytorch 的官方镜像站 https://download.pytorch.org/whl/torch/ 下载，或通过普通的 pip 安装。
 
 
+这里作者的环境是ubuntu18.04+nvidia a800，这里的安装方法不要求cuda版本匹配，只需要nvidia gpu driver能正常工作即可。
+为了兼容大多数gpu driver版本，作者建议下载
+
+- Torch
+https://download.pytorch.org/whl/cu118/torch-2.1.2%2Bcu118-cp310-cp310-linux_x86_64.whl#sha256=60396358193f238888540f4a38d78485f161e28ec17fa445f0373b5350ef21f0
+
+- Torchvision
+https://download.pytorch.org/whl/cu118/torchvision-0.16.2%2Bcu118-cp310-cp310-linux_x86_64.whl#sha256=18470aef0bbde73f5a6a96135cd457f4d8be31f60be7ceae4ef5174f02f73add
+
+下载完成后，使用
+
+``bash
+pip install torch-2.1.2+cu118-cp310-cp310-linux_x86_64.whl
+pip install torchvision-0.16.2+cu118-cp310-cp310-linux_x86_64.whl
+```
+
+完成torch和torchvision的安装。
+
 ### 下载视觉检索模型
 
 安装完成后，需要下载 `MiniCPM-Visual-Embedding-v0` 的模型权重。
@@ -244,17 +262,6 @@ export HF_ENDPOINT=https://hf-mirror.com
 ```
 
 等待几分钟后可以在当前目录下找到 `MiniCPM-V-2_6` 目录，模型已经下载完成。
-
-### 安装 flash_attn
-
-由于一些奇奇怪怪的原因必须用 `flash_attn` 这个库才能跑这个模型，所以呢我们需要手动安装。这里的版本很有可能安装不对，但解决方案是pip list看一下你的cublas版本和torch版本，去flash_attn release页面找一个条件合适的whl下载下来安装。如果安装成功了，那就基本没问题了。
-
-- Release 页面
-https://github.com/Dao-AILab/flash-attention/releases/
-
-- 一个和笔者环境匹配的whl: https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.2/flash_attn-2.6.2+cu123torch2.1cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
-
-whl下载下来之后，用 `pip install xxxx.whl` 就能安装。
 
 
 ### 加载 `MiniCPM-V-2.6`
