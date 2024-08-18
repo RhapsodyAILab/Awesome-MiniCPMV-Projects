@@ -1,6 +1,6 @@
 #  MiniCPM-V 系列模型在多模态文档 RAG 中的应用
 
-在相当长一段时间内，检索增强生成（RAG）需要使用 OCR 技术把文档中的文本抽取出来，接着使用文本嵌入模型获得语义向量，利用语义向量构建知识库进行检索。这种方法，会丢失所有的图像信息、大部分表格信息、图标信息，存在不可避免的信息损失。
+在相当长一段时间内，检索增强生成（RAG）需要使用 OCR 技术把文档中的文本抽取出来，接着使用文本嵌入模型获得语义向量，利用语义向量构建知识库进行检索。这种方法，会丢失所有的图像信息、大部分表格信息、图表信息，存在不可避免的信息损失。
 
 是否能够用一种近乎无损的方法来表征复杂图文文档，从而用来信息无损地检索多模态文档？
 
@@ -19,8 +19,9 @@
 
 > 若不熟悉多模态信息检索也没有关系！本文的小标题非常容易follow。
 
+## 多模态检索
 
-## 配置环境
+### 配置环境
 
 如果你是 Linux+英伟达GPU用户，在开始前，我们需要配置 MiniCPM-V 的运行环境。确保有 8GB 的显存。
 
@@ -54,7 +55,7 @@ timm
 然后需要安装 torch 和 torchvision，笔者喜欢从 pytorch 的官方镜像站 https://download.pytorch.org/whl/torch/ 下载，或通过普通的 pip 安装。
 
 
-## 下载视觉检索模型
+### 下载视觉检索模型
 
 安装完成后，需要下载 `MiniCPM-Visual-Embedding-v0` 的模型权重。
 
@@ -70,10 +71,16 @@ huggingface-cli download --resume-download RhapsodyAI/minicpm-visual-embedding-v
 export HF_ENDPOINT=https://hf-mirror.com
 ```
 
+我们也在 modelscope 上提供下载：
+```bash
+pip install modelscope
+modelscope download --model bxu2000/MiniCPM-Visual-Embedding-v0
+```
+
 等待几分钟后可以在当前目录下找到 `minicpm-visual-embedding-v0` 目录，模型已经下载完成。
 
 
-## 加载模型
+### 加载模型
 
 按照 [官方readme](https://huggingface.co/RhapsodyAI/minicpm-visual-embedding-v0) 里面的代码，这里需要把 `model_path` 改成刚刚下载的 `minicpm-visual-embedding-v0`的路径：
 
@@ -97,7 +104,7 @@ model = AutoModel.from_pretrained(model_path, trust_remote_code=True)
 model.to(device)
 ```
 
-## 最简单的例子：提一个问题，找出最相关的图像文档
+### 最简单的例子：提一个问题，找出最相关的图像文档
 
 这里提供了 3 张例子图片，分别是 `image1.png`，`image2.png`，`image3.png`，需要把路径分别替换进下面的代码。
 
@@ -168,18 +175,18 @@ tensor([[-0.0112,  0.3316,  0.2376]], device='cuda:0')
 
 这些分数表示了每个图像文档和问题直接的相似性：
 
-*Image 1* 这是一个完全无关的文档。
+*Image 1* 这是一个完全无关的文档。（得分-0.0112）
 ![](image1.png)
 
-*Image 2* 这是能解决问题的文档。
+*Image 2* 这是能解决问题的文档。（得分0.3316）
 ![](image2.png)
 
-*Image 3* 这是一个混淆项，它确实和 `president election of United States` 有关，但并不能解答用户的问题 `Who was elected as president of United States in 2020?`。
+*Image 3* 这是一个混淆项，它确实和 `president election of United States` 有关，但并不能解答用户的问题 `Who was elected as president of United States in 2020?`。（得分0.2376）
 
 ![](image3.png)
 
 
-## 本地可部署的 Gradio Demo
+### 本地可部署的 Gradio Demo
 
 像上面这样用代码做检索非常麻烦，笔者在 [MiniCPM_Visual_Document_Retriever_Demo](https://huggingface.co/spaces/bokesyo/MiniCPM_Visual_Document_Retriever_Demo) 的仓库里上传了一个可以本地部署的一个demo，这个demo可以对着一个很长的PDF问问题，检索最相关页面，可以很大程度节省阅读无关页面的时间。
 
@@ -209,18 +216,18 @@ python app.py
 
 笔者认为，这个结果是相当不错的，笔者当时画这两张图确实是为了探究 `semantic stitching` 不是 `trivial` 的，看来模型对于图像的理解还是可以的。
 
-## 没GPU怎么办
+### Huggingface 在线 Demo
 
-即使没有GPU，也可以在 huggingface 的 space 上免费用这个 demo，不用本地部署，解放双手。[Huggingface Demo](https://huggingface.co/spaces/bokesyo/MiniCPM_Visual_Document_Retriever_Demo)。这个demo是笔者用huggingface pro账号开的，用户不用花钱就可以一直用。
+即使没有GPU，也可以在 huggingface 的 space 上免费用这个 demo，不用本地部署，解放双手。[Huggingface Demo](https://huggingface.co/spaces/bokesyo/MiniCPM_Visual_Document_Retriever_Demo)。这个demo是笔者开的，用户可以免费用。
 
 
-## 进阶：多模态 RAG 的解答生成部分
+## 进阶：全流程多模态 RAG
 
-至此，我们已经拿到了检索的最相关页面，但是也懒得去具体看这几页，这个情况在 MiniCPM-V-2.6 发布之前，就必须要调用 GPT-4V= 的 api 来实现生成，但现在有了 MiniCPM-V-2.6 的强大的多图综合理解能力（其实笔者恰好参与了 MiniCPM-V-2.6 多图理解的训练，所以，笔者觉得是时候实现一下 RAG 的生成部分了！）
+至此，我们已经拿到了检索的最相关页面，但是阅读这些页面并回答也需要时间，这个情况在 MiniCPM-V-2.6 发布之前，要用 GPT-4V 的 api 来实现生成，但现在有了 MiniCPM-V-2.6 的强大的多图综合理解能力（其实笔者恰好参与了 MiniCPM-V-2.6 多图理解的训练，所以，笔者觉得是时候实现一下 RAG 的生成部分了！）
 
 MiniCPM-V-2.6 将会根据这些文档图片来生成一个问题的答案。
 
-## 下载 MiniCPM-V-2.6
+### 下载 MiniCPM-V-2.6
 
 我们可以用类似的方式下载 MiniCPM-V-2.6。
 
@@ -238,7 +245,7 @@ export HF_ENDPOINT=https://hf-mirror.com
 
 等待几分钟后可以在当前目录下找到 `MiniCPM-V-2_6` 目录，模型已经下载完成。
 
-## 安装 flash_attn
+### 安装 flash_attn
 
 由于一些奇奇怪怪的原因必须用 `flash_attn` 这个库才能跑这个模型，所以呢我们需要手动安装。这里的版本很有可能安装不对，但解决方案是pip list看一下你的cublas版本和torch版本，去flash_attn release页面找一个条件合适的whl下载下来安装。如果安装成功了，那就基本没问题了。
 
@@ -250,7 +257,7 @@ https://github.com/Dao-AILab/flash-attention/releases/
 whl下载下来之后，用 `pip install xxxx.whl` 就能安装。
 
 
-## 加载 `MiniCPM-V-2.6`
+### 加载 `MiniCPM-V-2.6`
 
 按照官方给出的readme，把path替换为本地下载好的 `MiniCPM-V-2.6` 即可。
 
@@ -265,7 +272,7 @@ model = model.eval().cuda()
 tokenizer = AutoTokenizer.from_pretrained('/path/to/MiniCPM-V-2_6', trust_remote_code=True)
 ```
 
-## 把检索结果传给 `MiniCPM-V-2.6` 生成解答
+### 把检索结果传给 `MiniCPM-V-2.6` 生成解答
 
 这里是个例子：
 
@@ -294,9 +301,30 @@ print(answer)
 
 好了，现在放上笔者的hf demo链接，有兴趣的小伙伴可以去试一下，和上面一样都是免费用的，如果想自己部署的话，把space里面的代码clone下来就可以在本地跑起来了，快去试试吧！
 
+```bash
+python app.py
+```
+
 demo链接奉上：https://huggingface.co/spaces/bokesyo/MiniCPMV-RAG-PDFQA
 
 demo源代码：https://huggingface.co/spaces/bokesyo/MiniCPMV-RAG-PDFQA/tree/main
 
 
 希望笔者可以给大家使用 MiniCPM-V 系列做多模态RAG带来一定的启发。
+
+
+## 相关资源整理
+
+1. MiniCPM-Visual-Embedding 多模态检索模型权重（huggingface）：https://huggingface.co/RhapsodyAI/minicpm-visual-embedding-v0
+
+2. MiniCPM-Visual-Embedding 多模态检索模型权重（modelscope）：https://www.modelscope.cn/models/bxu2000/MiniCPM-Visual-Embedding-v0
+
+3. MiniCPM-Visual-Embedding 多模态检索Demo（huggingface）：
+https://huggingface.co/spaces/bokesyo/MiniCPM_Visual_Document_Retriever_Demo
+
+4. MiniCPM-Visual-Embedding 多模态RAG Demo（huggingface）：
+https://huggingface.co/spaces/bokesyo/MiniCPMV-RAG-PDFQA
+
+5. MiniCPM-Visual-Embedding 训练框架（github）：
+https://github.com/RhapsodyAILab/MiniCPM-V-Embedding-v0-Train
+
