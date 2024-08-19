@@ -92,7 +92,7 @@ export HF_ENDPOINT=https://hf-mirror.com
 我们也在 modelscope 上提供下载：
 ```bash
 pip install modelscope
-modelscope download --model bxu2000/MiniCPM-Visual-Embedding-v0
+modelscope download --model RhapsodyAI/MiniCPM-Visual-Embedding-v0
 ```
 
 等待几分钟后可以在当前目录下找到 `minicpm-visual-embedding-v0` 目录，模型已经下载完成。
