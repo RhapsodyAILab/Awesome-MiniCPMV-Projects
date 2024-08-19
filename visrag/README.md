@@ -66,7 +66,7 @@ https://download.pytorch.org/whl/cu118/torchvision-0.16.2%2Bcu118-cp310-cp310-li
 
 下载完成后，使用
 
-``bash
+```bash
 pip install torch-2.1.2+cu118-cp310-cp310-linux_x86_64.whl
 pip install torchvision-0.16.2+cu118-cp310-cp310-linux_x86_64.whl
 ```
